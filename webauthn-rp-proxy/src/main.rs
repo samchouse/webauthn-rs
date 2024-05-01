@@ -200,10 +200,10 @@ fn authenticate_start(data: &str) -> Result<AuthenticateStartResponse> {
 fn authenticate_finish(data: &str) -> Result<AuthenticateFinishResponse> {
     let afr: AuthenticateFinishRequest = serde_json::from_str(data)?;
     let rp_origin = Url::parse(&afr.rp_origin)?;
-    let pka: PasskeyAuthentication = afr.passkey_authentication;
+    let mut pka: PasskeyAuthentication = afr.passkey_authentication;
     let pkc: PublicKeyCredential = afr.public_key_credential;
     let builder = WebauthnBuilder::new(&afr.rp_id, &rp_origin)?;
     let webauthn = builder.build()?;
-    let ar = webauthn.finish_passkey_authentication(&pkc, &pka)?;
+    let ar = webauthn.finish_passkey_authentication(&pkc, &mut pka, None)?;
     Ok(AuthenticateFinishResponse { server: ar })
 }

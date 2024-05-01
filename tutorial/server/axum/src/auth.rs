@@ -248,7 +248,7 @@ pub async fn finish_authentication(
     session: Session,
     Json(auth): Json<PublicKeyCredential>,
 ) -> Result<impl IntoResponse, WebauthnError> {
-    let (user_unique_id, auth_state): (Uuid, PasskeyAuthentication) = session
+    let (user_unique_id, mut auth_state): (Uuid, PasskeyAuthentication) = session
         .get("auth_state")?
         .ok_or(WebauthnError::CorruptSession)?;
 
@@ -256,7 +256,7 @@ pub async fn finish_authentication(
 
     let res = match app_state
         .webauthn
-        .finish_passkey_authentication(&auth, &auth_state)
+        .finish_passkey_authentication(&auth, &mut auth_state, None)
     {
         Ok(auth_result) => {
             let mut users_guard = app_state.users.lock().await;

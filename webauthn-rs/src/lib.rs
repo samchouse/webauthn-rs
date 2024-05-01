@@ -210,6 +210,7 @@ pub mod prelude {
     pub use crate::{Webauthn, WebauthnBuilder};
     pub use base64urlsafedata::Base64UrlSafeData;
     pub use url::Url;
+    #[cfg(not(feature = "danger-no-uuid"))]
     pub use uuid::Uuid;
     pub use webauthn_rs_core::error::{WebauthnError, WebauthnResult};
     #[cfg(feature = "danger-credential-internals")]
@@ -534,7 +535,8 @@ impl Webauthn {
     /// ```
     pub fn start_passkey_registration(
         &self,
-        user_unique_id: Uuid,
+        #[cfg(feature = "danger-no-uuid")] user_unique_id: &str,
+        #[cfg(not(feature = "danger-no-uuid"))] user_unique_id: Uuid,
         user_name: &str,
         user_display_name: &str,
         exclude_credentials: Option<Vec<CredentialID>>,
@@ -564,9 +566,9 @@ impl Webauthn {
             )?
             .attestation(AttestationConveyancePreference::None)
             .credential_algorithms(self.algorithms.clone())
-            .require_resident_key(false)
+            .require_resident_key(true)
             .authenticator_attachment(None)
-            .user_verification_policy(UserVerificationPolicy::Required)
+            .user_verification_policy(UserVerificationPolicy::Preferred)
             .reject_synchronised_authenticators(false)
             .exclude_credentials(exclude_credentials)
             .hints(None)
@@ -598,7 +600,8 @@ impl Webauthn {
     ))]
     pub fn start_google_passkey_in_google_password_manager_only_registration(
         &self,
-        user_unique_id: Uuid,
+        #[cfg(feature = "danger-no-uuid")] user_unique_id: &str,
+        #[cfg(not(feature = "danger-no-uuid"))] user_unique_id: Uuid,
         user_name: &str,
         user_display_name: &str,
         exclude_credentials: Option<Vec<CredentialID>>,
@@ -678,7 +681,7 @@ impl Webauthn {
     ) -> WebauthnResult<(RequestChallengeResponse, PasskeyAuthentication)> {
         let extensions = None;
         let creds = creds.iter().map(|sk| sk.cred.clone()).collect();
-        let policy = Some(UserVerificationPolicy::Required);
+        let policy = Some(UserVerificationPolicy::Preferred);
         let allow_backup_eligible_upgrade = true;
         let hints = None;
 
@@ -717,8 +720,13 @@ impl Webauthn {
     pub fn finish_passkey_authentication(
         &self,
         reg: &PublicKeyCredential,
-        state: &PasskeyAuthentication,
+        state: &mut PasskeyAuthentication,
+        creds: Option<Vec<Credential>>
     ) -> WebauthnResult<AuthenticationResult> {
+        if let Some(creds) = creds {
+            state.ast.set_allowed_credentials(creds);
+        }
+
         self.core.authenticate_credential(reg, &state.ast)
     }
 
@@ -837,7 +845,8 @@ impl Webauthn {
     /// ```
     pub fn start_securitykey_registration(
         &self,
-        user_unique_id: Uuid,
+        #[cfg(feature = "danger-no-uuid")] user_unique_id: &str,
+        #[cfg(not(feature = "danger-no-uuid"))] user_unique_id: Uuid,
         user_name: &str,
         user_display_name: &str,
         exclude_credentials: Option<Vec<CredentialID>>,
@@ -1139,7 +1148,8 @@ impl Webauthn {
     /// ```
     pub fn start_attested_passkey_registration(
         &self,
-        user_unique_id: Uuid,
+        #[cfg(feature = "danger-no-uuid")] user_unique_id: &str,
+        #[cfg(not(feature = "danger-no-uuid"))] user_unique_id: Uuid,
         user_name: &str,
         user_display_name: &str,
         exclude_credentials: Option<Vec<CredentialID>>,
@@ -1350,6 +1360,25 @@ impl Webauthn {
     ///
     /// You must use this information to locate the relavent credential that was used
     /// to allow you to finish the authentication.
+    #[cfg(feature = "danger-no-uuid")]
+    pub fn identify_discoverable_authentication<'a>(
+        &'_ self,
+        reg: &'a PublicKeyCredential,
+    ) -> WebauthnResult<(&'a str, &'a [u8])> {
+        let cred_id = reg.get_credential_id();
+        reg.get_user_unique_id()
+            .and_then(|b| std::str::from_utf8(b).ok())
+            .map(|u| (u, cred_id))
+            .ok_or(WebauthnError::InvalidUserUniqueId)
+    }
+
+    /// Pre-process the clients response from a conditional ui authentication attempt. This
+    /// will extract the users Uuid and the Credential ID that was used by the user
+    /// in their authentication.
+    ///
+    /// You must use this information to locate the relavent credential that was used
+    /// to allow you to finish the authentication.
+    #[cfg(not(feature = "danger-no-uuid"))]
     pub fn identify_discoverable_authentication<'a>(
         &'_ self,
         reg: &'a PublicKeyCredential,
@@ -1400,7 +1429,8 @@ impl Webauthn {
     /// TODO
     pub fn start_attested_resident_key_registration(
         &self,
-        user_unique_id: Uuid,
+        #[cfg(feature = "danger-no-uuid")] user_unique_id: &str,
+        #[cfg(not(feature = "danger-no-uuid"))] user_unique_id: Uuid,
         user_name: &str,
         user_display_name: &str,
         exclude_credentials: Option<Vec<CredentialID>>,

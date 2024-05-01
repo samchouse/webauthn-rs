@@ -26,6 +26,7 @@ workaround-google-passkey-specific-issues = []
 danger-allow-state-serialisation = []
 danger-credential-internals = []
 danger-user-presence-only-security-keys = []
+danger-no-uuid = []
 
 [dependencies]
 base64urlsafedata.workspace = true

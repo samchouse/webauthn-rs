@@ -246,8 +246,8 @@ impl WebauthnActor {
         );
 
         let r = match st {
-            AuthenticationTypedState::Passkey(ast) => {
-                self.swan.finish_passkey_authentication(lgn, &ast)
+            AuthenticationTypedState::Passkey(mut ast) => {
+                self.swan.finish_passkey_authentication(lgn, &mut ast, None)
             }
             AuthenticationTypedState::AttestedPasskey(ast) => {
                 self.swan.finish_attested_passkey_authentication(lgn, &ast)
