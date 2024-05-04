@@ -721,10 +721,12 @@ impl Webauthn {
         &self,
         reg: &PublicKeyCredential,
         state: &mut PasskeyAuthentication,
-        creds: Option<Vec<Credential>>
+        creds: Option<Vec<Passkey>>,
     ) -> WebauthnResult<AuthenticationResult> {
         if let Some(creds) = creds {
-            state.ast.set_allowed_credentials(creds);
+            state
+                .ast
+                .set_allowed_credentials(creds.iter().map(|p| p.cred.clone()).collect::<Vec<_>>());
         }
 
         self.core.authenticate_credential(reg, &state.ast)
